@@ -46,13 +46,13 @@ jobs:
 
     - name: Log in to Amazon ECR
       run: |
-        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 590183976537.dkr.ecr.ap-south-1.amazonaws.com
+        aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 970547377893.dkr.ecr.ap-south-1.amazonaws.com
 
     - name: Build Docker image
       run: docker build -t eleos-registry:eureka-service-v1 .
 
     - name: Tag Docker image
-      run: docker tag eleos-registry:eureka-service-v1 590183976537.dkr.ecr.ap-south-1.amazonaws.com/eleos-registry:eureka-service-v1
+      run: docker tag eleos-registry:eureka-service-v1 970547377893.dkr.ecr.ap-south-1.amazonaws.com/eleos-registry:eureka-service-v1
 
     - name: Push Docker image to Amazon ECR
-      run: docker push 590183976537.dkr.ecr.ap-south-1.amazonaws.com/eleos-registry:eureka-service-v1
+      run: docker push 970547377893.dkr.ecr.ap-south-1.amazonaws.com/eleos-registry:eureka-service-v1
