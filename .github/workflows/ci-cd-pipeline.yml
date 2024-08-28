@@ -1,21 +1,18 @@
-name: CI/CD Pipeline with Docker Compose and EC2
+name: CI/CD Pipeline with Docker Compose on Ubuntu EC2
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -55,19 +52,19 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USER }}
+          USER: ubuntu
         run: |
-          scp -i $SSH_PRIVATE_KEY docker-compose.yml $USER@$HOST:/home/$USER/app/
-          scp -i $SSH_PRIVATE_KEY *.tar $USER@$HOST:/home/$USER/app/
+          scp -i $SSH_PRIVATE_KEY docker-compose.yml ubuntu@$HOST:/home/ubuntu/app/
+          scp -i $SSH_PRIVATE_KEY *.tar ubuntu@$HOST:/home/ubuntu/app/
 
       - name: Deploy on EC2
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USER }}
+          USER: ubuntu
         run: |
-          ssh -i $SSH_PRIVATE_KEY $USER@$HOST << 'EOF'
-            cd /home/$USER/app/
+          ssh -i $SSH_PRIVATE_KEY ubuntu@$HOST << 'EOF'
+            cd /home/ubuntu/app/
             docker load -i bugzilla-svc.tar
             docker load -i mariadb.tar
             docker load -i testlink.tar
