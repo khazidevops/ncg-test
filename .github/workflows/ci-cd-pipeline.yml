@@ -1,72 +1,32 @@
-name: CI/CD Pipeline with Docker Compose on Ubuntu EC2
+name: Deploy Bugzilla and TestLink
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on push to the main branch
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Images
-        run: |
-          docker-compose build
-
-      - name: Save Docker Images as Tarballs
-        run: |
-          docker save -o bugzilla-svc.tar bxwill/bugzilla:5.0.6
-          docker save -o mariadb.tar bitnami/mariadb:latest
-          docker save -o testlink.tar bitnami/testlink-archived
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: docker-images
-          path: |
-            bugzilla-svc.tar
-            mariadb.tar
-            testlink.tar
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-images
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}  # Add your private key to GitHub Secrets
 
-      - name: Copy Files to EC2
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ubuntu
-        run: |
-          scp -i $SSH_PRIVATE_KEY docker-compose.yml ubuntu@$HOST:/home/ubuntu/app/
-          scp -i $SSH_PRIVATE_KEY *.tar ubuntu@$HOST:/home/ubuntu/app/
+    - name: Copy Docker Compose file to EC2
+      run: scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa docker-compose.yml ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/docker-compose.yml
 
-      - name: Deploy on EC2
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ubuntu
-        run: |
-          ssh -i $SSH_PRIVATE_KEY ubuntu@$HOST << 'EOF'
-            cd /home/ubuntu/app/
-            docker load -i bugzilla-svc.tar
-            docker load -i mariadb.tar
-            docker load -i testlink.tar
-            docker-compose up -d
-          EOF
+    - name: Connect to EC2 and deploy
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          sudo apt-get update
+          sudo apt-get install -y docker.io docker-compose
+          cd /home/ubuntu
+          docker-compose down
+          docker-compose up -d
+        EOF
