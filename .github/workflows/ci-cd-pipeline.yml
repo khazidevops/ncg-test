@@ -20,25 +20,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
       - name: Build and Push Docker Images
-        env:
-          DOCKER_BUILDKIT: 1
         run: |
           docker-compose build
-          docker-compose push
+          docker-compose up -d bugzilla-db tl-mariadb
+          docker-compose up -d bugzilla-svc tl-testlink
 
       - name: Run Tests
         run: |
-          docker-compose up -d
-          docker-compose exec web npm test
+          # You can add commands here to test the services
+          docker-compose exec bugzilla-svc curl -I http://localhost
+          docker-compose exec tl-testlink curl -I http://localhost:83
           docker-compose down
 
   deploy:
